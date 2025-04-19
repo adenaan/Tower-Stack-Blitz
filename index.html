@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tower Stack Blitz</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+    canvas {
+      display: block;
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 24px;
+      color: #fff;
+      font-weight: bold;
+      text-shadow: 2px 2px #000;
+    }
+  </style>
+</head>
+<body>
+  <div id="score">Score: 0</div>
+  <canvas id="gameCanvas"></canvas>
+  <audio id="placeSound" src="https://www.soundjay.com/button/sounds/button-16.mp3"></audio>
+  <audio id="failSound" src="https://www.soundjay.com/button/sounds/button-10.mp3"></audio>
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const placeSound = document.getElementById("placeSound");
+    const failSound = document.getElementById("failSound");
+
+    const backgrounds = ['#87ceeb', '#ffdd57', '#ffa07a', '#1e90ff', '#2e2e2e'];
+    let bgIndex = 0;
+
+    let blocks = [];
+    let speed = 3;
+    let direction = 1;
+    let score = 0;
+    let blockWidth = canvas.width * 0.6;
+    let blockHeight = 30;
+    let currentX = 0;
+
+    function drawBackground() {
+      ctx.fillStyle = backgrounds[bgIndex];
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawBlock(x, y, width) {
+      ctx.fillStyle = '#333';
+      ctx.fillRect(x, y, width, blockHeight);
+    }
+
+    function gameLoop() {
+      drawBackground();
+
+      for (let i = 0; i < blocks.length; i++) {
+        drawBlock(blocks[i].x, canvas.height - blockHeight * (i + 1), blocks[i].width);
+      }
+
+      currentX += speed * direction;
+      if (currentX <= 0 || currentX + blockWidth >= canvas.width) {
+        direction *= -1;
+      }
+      drawBlock(currentX, canvas.height - blockHeight * (blocks.length + 1), blockWidth);
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function placeBlock() {
+      if (blocks.length === 0) {
+        blocks.push({ x: currentX, width: blockWidth });
+        score++;
+        updateScore();
+        placeSound.play();
+        return;
+      }
+
+      const last = blocks[blocks.length - 1];
+      const diff = currentX - last.x;
+      const overlap = blockWidth - Math.abs(diff);
+
+      if (overlap <= 0) {
+        failSound.play();
+        alert("Game Over! Your score: " + score);
+        location.reload();
+        return;
+      }
+
+      currentX = diff >= 0 ? currentX : last.x;
+      blockWidth = overlap;
+      blocks.push({ x: currentX, width: blockWidth });
+      score++;
+      updateScore();
+      placeSound.play();
+
+      if (score % 10 === 0) {
+        bgIndex = (bgIndex + 1) % backgrounds.length;
+      }
+    }
+
+    function updateScore() {
+      document.getElementById("score").innerText = "Score: " + score;
+    }
+
+    canvas.addEventListener("touchstart", placeBlock);
+    canvas.addEventListener("mousedown", placeBlock);
+
+    gameLoop();
+  </script>
+</body>
+</html>
