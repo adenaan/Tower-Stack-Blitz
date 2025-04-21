@@ -1,0 +1,131 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      overflow: hidden;
+      background: #87CEEB;
+      touch-action: manipulation;
+    }
+    canvas {
+      display: block;
+      background: #87CEEB;
+    }
+  </style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let blocks = [];
+let blockHeight = 30;
+let baseWidth = 160;
+let currentX = 0;
+let direction = 4;
+let cameraOffsetY = 0;
+let targetOffsetY = 0;
+let score = 0;
+let gameStarted = false;
+let gameOver = false;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+function drawBlock(x, y, width) {
+  ctx.fillStyle = "#000";
+  ctx.fillRect(x, y, width, blockHeight);
+}
+
+function update() {
+  if (!gameStarted || gameOver) return;
+
+  let currentWidth = blocks.length > 0 ? blocks[blocks.length - 1].width : baseWidth;
+  currentX += direction;
+  if (currentX + currentWidth > canvas.width || currentX < 0) direction *= -1;
+
+  let topY = (blocks.length + 1) * blockHeight;
+  if (topY > canvas.height / 2) {
+    targetOffsetY = topY - canvas.height / 2;
+  } else {
+    targetOffsetY = 0;
+  }
+  cameraOffsetY += (targetOffsetY - cameraOffsetY) * 0.1;
+}
+
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = 0; i < blocks.length; i++) {
+    let y = canvas.height - ((i + 1) * blockHeight - cameraOffsetY);
+    drawBlock(blocks[i].x, y, blocks[i].width);
+  }
+
+  if (!gameOver) {
+    let currentWidth = blocks.length > 0 ? blocks[blocks.length - 1].width : baseWidth;
+    let y = canvas.height - ((blocks.length + 1) * blockHeight - cameraOffsetY);
+    drawBlock(currentX, y, currentWidth);
+  }
+
+  ctx.fillStyle = "#000";
+  ctx.font = "24px Arial";
+  if (!gameOver) {
+    ctx.fillText("Score: " + score, 10, 30);
+  } else {
+    ctx.fillText("Game Over! Final Score: " + score, 10, 30);
+    ctx.fillText("Tap to restart", 10, 60);
+  }
+}
+
+function gameLoop() {
+  update();
+  render();
+  requestAnimationFrame(gameLoop);
+}
+gameLoop();
+
+canvas.addEventListener("pointerdown", () => {
+  if (gameOver) {
+    blocks = [];
+    currentX = 0;
+    direction = 4;
+    score = 0;
+    cameraOffsetY = 0;
+    targetOffsetY = 0;
+    gameOver = false;
+    gameStarted = true;
+    return;
+  }
+
+  if (!gameStarted) {
+    gameStarted = true;
+    return;
+  }
+
+  let previous = blocks.length > 0 ? blocks[blocks.length - 1] : { x: 0, width: baseWidth };
+  let currentWidth = previous.width;
+  let overlapStart = Math.max(previous.x, currentX);
+  let overlapEnd = Math.min(previous.x + previous.width, currentX + currentWidth);
+  let overlap = overlapEnd - overlapStart;
+
+  if (overlap <= 0) {
+    gameOver = true;
+    return;
+  }
+
+  blocks.push({ x: overlapStart, width: overlap });
+  score++;
+  currentX = 0;
+  direction = 4;
+});
+</script>
+</body>
+</html>
